@@ -1,11 +1,23 @@
-import tkinter as tk
-from tkinter import ttk
-import serial
+try:
+    import tkinter as tk
+    from tkinter import ttk
+except ImportError:
+    print("tkinter is not installed. Run 'pip install tk' to install it.")
+
+try:
+    import serial
+    import serial.tools.list_ports  # Import the list_ports tool
+except ImportError:
+    print("pyserial is not installed. Run 'pip install pyserial' to install it.")
+
+try:
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+    import matplotlib.animation as animation
+except ImportError:
+    print("matplotlib is not installed. Run 'pip install matplotlib' to install it.")
+
 import threading
- 
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import matplotlib.animation as animation
 
 class SerialApp:
     def __init__(self, root):
@@ -17,12 +29,16 @@ class SerialApp:
         self.ser = None
 
         # Dropdown for COM Port
+        # Dropdown for COM Port
         self.com_port_label = ttk.Label(root, text="COM Port:")
         self.com_port_label.pack()
         self.com_port = ttk.Combobox(root)
-        self.com_port['values'] = ['COM1', 'COM2', 'COM3', 'COM4']  # Update with available COM ports
+        self.com_port['values'] = self.get_serial_ports()
+        # Automatically select the first serial port if available
+        if self.com_port['values']:
+            self.com_port.set(self.com_port['values'][0])
         self.com_port.pack()
- 
+
 
         # Connect Button
         self.connect_button = ttk.Button(root, text="Connect", command=self.connect)
@@ -59,8 +75,16 @@ class SerialApp:
         # Variables for plotting
         self.x_data = []
         self.y_data = []
-
         self.plotting = False
+
+    def get_serial_ports(self):
+        """Lists serial port names of type Silicon Labs CP210x"""
+        if hasattr(serial, 'tools') and hasattr(serial.tools, 'list_ports'):
+            ports = serial.tools.list_ports.comports()
+            return [port.device for port in ports if "Silicon Labs CP210x" in port.description]
+        else:
+            raise EnvironmentError('Serial tools not available or unsupported platform')
+
 
     def disconnect(self):
         if self.ser and self.ser.is_open:
@@ -119,7 +143,12 @@ class SerialApp:
         self.text_display.insert(tk.END, data)
         self.text_display.see(tk.END)  # Scroll to the bottom
 
-# Create the main window
-root = tk.Tk()
-app = SerialApp(root)
-root.mainloop()
+
+# Main execution...
+if __name__ == "__main__":
+    try:
+        root = tk.Tk()
+        app = SerialApp(root)
+        root.mainloop()
+    except NameError:
+        print("GUI cannot start. Missing required libraries.")
